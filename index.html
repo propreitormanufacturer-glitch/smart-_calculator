@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ultra Smart Calculator – Level 6</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;font-family:Poppins,sans-serif;margin:0;padding:0}
+body{display:flex;justify-content:center;align-items:center;height:100vh;transition:.5s;background:#020617;color:white;}
+.calculator{width:520px;padding:18px;border-radius:28px;background:rgba(0,0,0,.55);backdrop-filter:blur(14px);box-shadow:0 0 40px #0ff;}
+.title{text-align:center;color:#0ff;font-weight:600;letter-spacing:2px;margin-bottom:10px;}
+.display{height:70px;background:black;color:#0ff;border-radius:18px;font-size:26px;text-align:right;padding:16px;margin-bottom:10px;}
+.buttons{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+button{height:42px;border:none;border-radius:14px;font-size:14px;cursor:pointer;color:white;background:linear-gradient(45deg,#0ff,#f0f);transition:.2s;}
+button:hover{transform:scale(1.05)}
+.equal{grid-column:span 2}
+.clear{background:#dc2626}
+.mode{background:#22c55e}
+.mem{background:#0ea5e9}
+.panel{margin-top:10px;padding:10px;border-radius:14px;background:rgba(255,255,255,.05);}
+.panel-title{text-align:center;font-size:13px;color:#0ff;margin-bottom:6px}
+.history{max-height:90px;overflow:auto;font-size:12px;color:#a5f3fc;}
+canvas{width:100%;height:120px;background:black;border-radius:12px;}
+.bg-options{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:5px;}
+.color-inputs{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:5px;}
+</style>
+</head>
+<body>
+<div class="calculator">
+<div class="title">ULTRA SMART CALC • LEVEL 6</div>
+<div id="display" class="display">0</div>
+
+<div class="buttons">
+<button onclick="press('sin(')">sin</button>
+<button onclick="press('cos(')">cos</button>
+<button onclick="press('tan(')">tan</button>
+<button onclick="press('log(')">log</button>
+<button onclick="press('ln(')">ln</button>
+<button onclick="toggleDeg()" class="mode" id="modeBtn">DEG</button>
+
+<button onclick="press('7')">7</button>
+<button onclick="press('8')">8</button>
+<button onclick="press('9')">9</button>
+<button onclick="press('/')">÷</button>
+<button onclick="back()">⌫</button>
+<button onclick="clearDisplay()" class="clear">C</button>
+
+<button onclick="press('4')">4</button>
+<button onclick="press('5')">5</button>
+<button onclick="press('6')">6</button>
+<button onclick="press('*')">×</button>
+<button onclick="press('(')">(</button>
+<button onclick="press(')')">)</button>
+
+<button onclick="press('1')">1</button>
+<button onclick="press('2')">2</button>
+<button onclick="press('3')">3</button>
+<button onclick="press('-')">−</button>
+<button onclick="press('abs(')">|x|</button>
+<button onclick="press('+')">+</button>
+
+<button onclick="press('0')">0</button>
+<button onclick="press('.')">.</button>
+<button onclick="solveEq()">SOLVE</button>
+<button class="equal" onclick="calculate()">=</button>
+<button onclick="plot()">GRAPH</button>
+<button onclick="press('%')">%</button>
+
+<button class="mem" onclick="memAdd()">M+</button>
+<button class="mem" onclick="memSub()">M-</button>
+<button class="mem" onclick="memRead()">MR</button>
+<button class="mem" onclick="memClear()">MC</button>
+</div>
+
+<div class="panel">
+<div class="panel-title">GRAPH</div>
+<canvas id="graph"></canvas>
+</div>
+
+<div class="panel">
+<div class="panel-title">HISTORY</div>
+<div id="history" class="history"></div>
+</div>
+
+<div class="panel">
+<div class="panel-title">BACKGROUND & THEME</div>
+<div class="bg-options">
+<button onclick="setBg('dark')">Dark</button>
+<button onclick="setBg('neon')">Neon</button>
+<button onclick="setBg('sunset')">Sunset</button>
+<button onclick="setBg('ocean')">Ocean</button>
+<button onclick="setBg('space')">Space</button>
+<button onclick="setBg('animated')">Animated</button>
+</div>
+<div class="color-inputs">
+<label>Button Color: <input type="color" id="btnColor" onchange="updateTheme()"></label>
+<label>Display Color: <input type="color" id="dispColor" onchange="updateTheme()"></label>
+<label>Text Color: <input type="color" id="textColor" onchange="updateTheme()"></label>
+<label>Accent Color: <input type="color" id="accentColor" onchange="updateTheme()"></label>
+</div>
+</div>
+</div>
+
+<script>
+const display=document.getElementById("display");
+const historyBox=document.getElementById("history");
+const canvas=document.getElementById("graph");
+const ctx=canvas.getContext("2d");
+
+let deg=true, mem=0;
+
+/* BUTTON PRESS */
+function press(v){if(display.innerText==="0")display.innerText="";display.innerText+=v}
+function clearDisplay(){display.innerText="0"}
+function back(){display.innerText=display.innerText.slice(0,-1)||"0"}
+function toggleDeg(){deg=!deg;document.getElementById("modeBtn").innerText=deg?"DEG":"RAD"}
+
+/* MEMORY */
+function memAdd(){mem+=Number(display.innerText)||0}
+function memSub(){mem-=Number(display.innerText)||0}
+function memRead(){display.innerText=mem}
+function memClear(){mem=0}
+
+/* MATH PARSER */
+function factorial(n){if(n<0)return NaN;let r=1;for(let i=1;i<=n;i++)r*=i;return r}
+function parse(expr,x=null){
+  if(!expr) return 0;
+  expr=expr.replace(/abs/g,"Math.abs")
+           .replace(/π/g,"Math.PI")
+           .replace(/e/g,"Math.E")
+           .replace(/log/g,"Math.log10")
+           .replace(/ln/g,"Math.log")
+           .replace(/sin|cos|tan/g,m=>`Math.${m}`)
+           .replace(/\^/g,"**")
+           .replace(/(\d+)!/g,"factorial($1)")
+           .replace(/%/g,"/100");
+  if(x!==null) expr=expr.replace(/x/g,`(${x})`);
+  if(deg) expr=expr.replace(/Math\.(sin|cos|tan)\(([^)]+)\)/g,(m,f,a)=>`Math.${f}(${a}*Math.PI/180)`);
+  return Function("factorial","return "+expr)(factorial);
+}
+
+/* CALCULATE */
+function calculate(){try{
+  let raw=display.innerText; let r=parse(raw);
+  display.innerText=r;
+  const h=document.createElement("div");h.textContent=`${raw} = ${r}`;historyBox.prepend(h);
+}catch{display.innerText="Error"}}
+
+/* SOLVE EQUATION */
+function solveEq(){if(!display.innerText.includes("=")){display.innerText="Error";return;}
+try{let [L,R]=display.innerText.split("=");let f=x=>parse(L,x)-parse(R,x);let x=0;
+for(let i=0;i<40;i++){let d=(f(x+1e-6)-f(x))/1e-6;if(!d)break;x-=f(x)/d}display.innerText=x.toFixed(6)}
+catch{display.innerText="Error"}}
+
+/* GRAPH */
+function plot(){
+  canvas.width=canvas.clientWidth;canvas.height=canvas.clientHeight;ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle="#0ff";ctx.beginPath();
+  for(let px=0;px<canvas.width;px++){
+    let x=(px-canvas.width/2)/30; let y;
+    try{y=parse(display.innerText,x)}catch{continue}
+    let py=canvas.height/2-y*30; px===0?ctx.moveTo(px,py):ctx.lineTo(px,py)}
+  ctx.stroke()
+}
+
+/* BACKGROUND */
+function setBg(t){
+  let bg;
+  if(t==="dark")bg="#020617";
+  if(t==="neon")bg="linear-gradient(135deg,#0ff,#f0f)";
+  if(t==="sunset")bg="linear-gradient(135deg,#ff512f,#dd2476)";
+  if(t==="ocean")bg="linear-gradient(135deg,#2193b0,#6dd5ed)";
+  if(t==="space")bg="radial-gradient(circle at top,#1e293b,#020617)";
+  if(t==="animated"){bg="linear-gradient(-45deg,#0ff,#f0f,#00f,#0f0)";document.body.style.backgroundSize="400% 400%";document.body.style.animation="bgAnim 10s ease infinite";}
+  else document.body.style.animation="";
+  document.body.style.background=bg;
+  localStorage.setItem("bg",bg);
+}
+
+/* THEME EDITOR */
+function updateTheme(){
+  const btn=document.querySelectorAll("button");
+  const btnColor=document.getElementById("btnColor").value;
+  const dispColor=document.getElementById("dispColor").value;
+  const textColor=document.getElementById("textColor").value;
+  const accentColor=document.getElementById("accentColor").value;
+  btn.forEach(b=>b.style.background=btnColor);display.style.background=dispColor;display.style.color=textColor;
+}
+
+/* ANIM */
+</script>
+<style>
+@keyframes bgAnim{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+</style>
+</body>
+</html>
